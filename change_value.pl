@@ -3,8 +3,11 @@
 use Data::Dumper;
 use strict;
 use warnings;
- use List::Util qw(min sum);
- 
+use List::Util qw(min sum);
+use Math::Combinatorics; 
+use Memoize;
+memoize('change_coin_count_helper');
+
 use Test::Simple tests => 6;
 	ok(change_coin_count(25,[5]) == 5);
 	ok(change_coin_count(5,[5]) == 1);
@@ -12,10 +15,8 @@ use Test::Simple tests => 6;
 	ok(change_coin_count(50,[50,5,10]) == 1);
 	ok(change_coin_count(95, [100,5]) == 19);
 	ok(change_coin_count(5, [5,33]) == 1);
-	
-use Math::Combinatorics;
 
-my @coin_values = map { 5 * $_ } 2..19;
+my @coin_values = 2..99;
 
 # Enumerate all combinations of 5 cent coins choose 4
 # i.e. [5,10,15,...,95]
@@ -31,8 +32,8 @@ while(my @combo = $combinat->next_combination) {
 	
 	# For each change possibility [5,10,15,...,95] calculate how many coins are minimally required to make change	
 	my @coin_counts;
-	for my $change_value ( 5, @coin_values ) {		
-		my $count = change_coin_count($change_value, [5,@combo]);
+	for my $change_value ( 1, @coin_values ) {		
+		my $count = change_coin_count($change_value, [1,@combo]);
 		# print "Got coin count of $count change for $change_value\n";
 		push(@coin_counts, $count);		
 	}
@@ -43,7 +44,7 @@ while(my @combo = $combinat->next_combination) {
 	
 	print "For combo " . join(",", @combo) . ", got average of $average\n";
 	# Store for that combo
-	$avg_coin_map{join(",", sort {$a <=> $b} (5,@combo)) } = $average ;
+	$avg_coin_map{join(",", sort {$a <=> $b} (1,@combo)) } = $average ;
 }
 
 # Print ordered lists
@@ -55,7 +56,7 @@ sub change_coin_count {
 		my ($value, $coin_set) = @_;
 
 		my %coin_map = map { $_ => 1 } @$coin_set;
-
+				
 		return change_coin_count_helper($value, \%coin_map);
 }
 
@@ -73,7 +74,11 @@ sub change_coin_count_helper {
 				return 0;
 		}
 
-		return min(map { 1 + change_coin_count_helper($value - $_, \%new_coin_set) } keys %new_coin_set);
+		return min(
+			map { 
+				return 1 + change_coin_count_helper($value - $_, \%new_coin_set);		
+			} keys %new_coin_set
+		);
 }
 
 sub avg {
